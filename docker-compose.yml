@@ -1,0 +1,65 @@
+name: 4sigma-workspace
+
+# Chạy toàn bộ:            docker compose up -d --build   -> http://localhost:8080
+# Chỉ chạy hạ tầng (dev):  docker compose up -d postgres redis minio
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-workspace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-workspace}
+      POSTGRES_DB: ${POSTGRES_DB:-workspace}
+    ports: ["5432:5432"]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio-data:/data]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: ./apps/api
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-workspace}:${POSTGRES_PASSWORD:-workspace}@postgres:5432/${POSTGRES_DB:-workspace}
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      WEB_URL: ${PUBLIC_URL:-http://localhost:8080}
+      GOOGLE_CALLBACK_URL: ${PUBLIC_URL:-http://localhost:8080}/api/auth/google/callback
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+
+  web:
+    build: ./apps/web
+    ports: ["8080:80"]
+    depends_on: [api]
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

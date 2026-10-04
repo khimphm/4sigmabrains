@@ -1,0 +1,17 @@
+{
+  "name": "4sigma-workspace",
+  "private": true,
+  "scripts": {
+    "setup": "npm ci --prefix apps/api && npm ci --prefix apps/web",
+    "infra": "docker compose up -d postgres redis minio",
+    "dev:api": "npm run start:dev --prefix apps/api",
+    "dev:web": "npm run dev --prefix apps/web",
+    "build": "npm run build --prefix apps/api && npm run build --prefix apps/web",
+    "lint": "npm run lint --prefix apps/api && npm run lint --prefix apps/web",
+    "test": "npm test --prefix apps/api"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=11"
+  }
+}
