@@ -1,73 +1,117 @@
-import { CheckSquare, FolderKanban, LayoutDashboard, LogOut, MessagesSquare } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { LogOut, Menu, Monitor, Moon, Search, Sun, UserRound } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 
-import { BrandLogo } from '@/components/brand-logo'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { UserAvatar } from '@/components/user-avatar'
 import { useAuth } from '@/features/auth/use-auth'
-import { cn } from '@/lib/utils'
-
-const nav = [
-  { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-  { to: '/my-tasks', label: 'Việc của tôi', icon: CheckSquare },
-  { to: '/projects', label: 'Dự án', icon: FolderKanban },
-  { to: '/discussions', label: 'Thảo luận', icon: MessagesSquare },
-]
+import { useRealtimeNotifications } from '@/features/notifications/api'
+import { TaskSheet } from '@/features/tasks/task-sheet'
+import { ROLE_LABEL } from '@/lib/constants'
+import { useTheme } from '@/lib/theme'
+import { CommandPalette } from './command-palette'
+import { NotificationBell } from './notification-bell'
+import { Sidebar } from './sidebar'
 
 export function AppShell() {
   const { user, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const openLink = useCallback((link: string) => navigate(link), [navigate])
+  useRealtimeNotifications(openLink)
+
+  const isMac = navigator.platform.toLowerCase().includes('mac')
 
   return (
-    <div className="flex min-h-svh">
-      <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden w-64 shrink-0 flex-col border-r md:flex">
-        <BrandLogo className="px-5 py-5 text-white" />
-        <nav className="flex flex-1 flex-col gap-1 px-3">
-          {nav.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                  isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                )
-              }
-            >
-              <Icon className="size-4" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-        {user && (
-          <div className="border-sidebar-border flex items-center gap-3 border-t px-4 py-4">
-            <Avatar>
-              {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.name} />}
-              <AvatarFallback className="bg-sidebar-accent text-xs text-white">
-                {user.name.slice(0, 1).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-white">{user.name}</p>
-              <p className="truncate text-xs">{user.email}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-sidebar-accent text-sidebar-foreground hover:text-white"
-              onClick={logout}
-              aria-label="Đăng xuất"
-            >
-              <LogOut />
-            </Button>
-          </div>
-        )}
+    <div className="bg-background flex min-h-svh">
+      <aside className="border-sidebar-border fixed inset-y-0 left-0 z-30 hidden w-64 border-r lg:block">
+        <Sidebar />
       </aside>
-      <main className="min-w-0 flex-1">
-        <Outlet />
-      </main>
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-72 border-none p-0">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <Sidebar onNavigate={() => setMobileOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+        <header className="bg-background/80 sticky top-0 z-20 flex h-14 items-center gap-2 border-b px-4 backdrop-blur-md md:px-6">
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Mở menu">
+            <Menu />
+          </Button>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="bg-muted/60 text-muted-foreground hover:bg-muted flex h-9 w-full max-w-md items-center gap-2 rounded-lg border px-3 text-sm transition-colors"
+          >
+            <Search className="size-4" />
+            <span className="truncate">Tìm kiếm…</span>
+            <kbd className="bg-background ml-auto hidden rounded border px-1.5 py-0.5 font-mono text-[10px] sm:inline">
+              {isMac ? '⌘' : 'Ctrl'} K
+            </kbd>
+          </button>
+          <div className="ml-auto flex items-center gap-1">
+            <NotificationBell />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="hover:ring-primary/30 ml-1 rounded-full ring-2 ring-transparent transition" aria-label="Tài khoản">
+                  {user && <UserAvatar user={user} className="size-8" />}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="font-medium">{user?.name}</div>
+                  <div className="text-muted-foreground truncate text-xs">{user?.email}</div>
+                  {user && <div className="text-primary mt-1 text-xs">{ROLE_LABEL[user.role]}</div>}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">
+                    <UserRound />
+                    Hồ sơ cá nhân
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">Giao diện</DropdownMenuLabel>
+                {(
+                  [
+                    ['light', 'Sáng', Sun],
+                    ['dark', 'Tối', Moon],
+                    ['system', 'Theo hệ thống', Monitor],
+                  ] as const
+                ).map(([value, label, Icon]) => (
+                  <DropdownMenuItem key={value} onClick={() => setTheme(value)}>
+                    <Icon />
+                    {label}
+                    {theme === value && <span className="bg-primary ml-auto size-1.5 rounded-full" />}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} variant="destructive">
+                  <LogOut />
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+        <main className="min-w-0 flex-1">
+          <Outlet />
+        </main>
+      </div>
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      <TaskSheet />
     </div>
   )
 }

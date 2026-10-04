@@ -1,18 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api, ApiError } from '@/lib/api'
-
-export type UserStatus = 'PENDING' | 'ACTIVE' | 'DISABLED'
-export type UserRole = 'ADMIN' | 'MANAGER' | 'MEMBER'
-
-export interface CurrentUser {
-  id: string
-  email: string
-  name: string
-  avatarUrl: string | null
-  role: UserRole
-  status: UserStatus
-}
+import { api, ApiError, post } from '@/lib/api'
+import type { User } from '@/types/api'
 
 export function useAuth() {
   const queryClient = useQueryClient()
@@ -20,7 +9,7 @@ export function useAuth() {
     queryKey: ['auth', 'me'],
     queryFn: async () => {
       try {
-        return await api<CurrentUser>('/auth/me')
+        return await api<User>('/auth/me')
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) return null
         throw e
@@ -31,9 +20,17 @@ export function useAuth() {
   })
 
   const logout = async () => {
-    await api('/auth/logout', { method: 'POST' })
+    await post('/auth/logout')
+    queryClient.clear()
     queryClient.setQueryData(['auth', 'me'], null)
   }
 
-  return { user: query.data ?? null, isLoading: query.isLoading, logout }
+  const user = query.data ?? null
+  return {
+    user,
+    isLoading: query.isLoading,
+    isAdmin: user?.role === 'ADMIN',
+    isManager: user?.role === 'ADMIN' || user?.role === 'MANAGER',
+    logout,
+  }
 }
