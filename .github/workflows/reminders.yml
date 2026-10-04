@@ -1,0 +1,25 @@
+# Render Free cho máy ngủ khi không ai dùng, nên lịch nhắc hạn trong app có thể không chạy.
+# Workflow này gọi app mỗi giờ để quét việc sắp đến hạn / quá hạn (đồng thời đánh thức máy).
+# Cần cấu hình trong GitHub > Settings > Secrets and variables > Actions:
+#   Variables: APP_URL      (vd: https://4sigmabrains.onrender.com)
+#   Secrets:   CRON_SECRET  (giống giá trị trên Render)
+name: Nhắc hạn công việc
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    if: ${{ vars.APP_URL != '' }}
+    steps:
+      - name: Gọi /api/cron/reminders
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # Lần đầu có thể mất ~1 phút để máy Render thức dậy
+          curl -fsS --retry 5 --retry-delay 15 --retry-all-errors --max-time 90 \
+            -X POST -H "x-cron-secret: $CRON_SECRET" "$APP_URL/api/cron/reminders"

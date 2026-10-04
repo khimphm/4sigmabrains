@@ -1,0 +1,61 @@
+# Render Blueprint: New > Blueprint > chọn repo này.
+# Gói Free: máy ngủ sau 15 phút không có truy cập, lần mở đầu tiên chờ khoảng 1 phút.
+# Database dùng Neon (miễn phí), file dùng Cloudflare R2 (miễn phí 10 GB).
+# Các biến sync:false sẽ được Render hỏi khi tạo. Xem docs/deploy-mien-phi.md.
+services:
+  - type: web
+    name: 4sigmabrains
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WEB_URL
+        sync: false # vd: https://4sigmabrains.onrender.com
+      - key: GOOGLE_CALLBACK_URL
+        sync: false # vd: https://4sigmabrains.onrender.com/api/auth/google/callback
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: ALLOWED_EMAIL_DOMAINS
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false # chuỗi kết nối Neon
+      - key: DATABASE_SSL
+        value: "true"
+      - key: S3_ENDPOINT
+        sync: false # https://<account_id>.r2.cloudflarestorage.com
+      - key: S3_REGION
+        value: auto
+      - key: S3_BUCKET
+        value: 4sigmabrains
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        value: "true"
+      - key: MAX_UPLOAD_MB
+        value: "25"
+      - key: SMTP_HOST
+        sync: false # để trống nếu chưa gửi email
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false

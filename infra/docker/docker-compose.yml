@@ -1,0 +1,64 @@
+# Chạy toàn bộ hệ thống trên 1 máy (máy văn phòng hoặc VPS sau này).
+#   cp .env.example .env   # rồi điền giá trị
+#   npm run up             # = docker compose -f infra/docker/docker-compose.yml --env-file .env up -d --build
+# Mở http://localhost:3000. Muốn có tên miền + HTTPS: thêm profile "https" (Caddy, xem infra/server/Caddyfile).
+name: 4sigmabrains
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-workspace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-workspace}
+      POSTGRES_DB: ${POSTGRES_DB:-workspace}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-minioadmin}
+    volumes: [minio-data:/data]
+
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../../.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-workspace}:${POSTGRES_PASSWORD:-workspace}@postgres:5432/${POSTGRES_DB:-workspace}
+      DATABASE_SSL: "false"
+      S3_ENDPOINT: http://minio:9000
+      S3_FORCE_PATH_STYLE: "true"
+      SERVE_STATIC_DIR: /app/public
+    ports: ["3000:3000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ../server/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [app]
+
+volumes:
+  postgres-data:
+  minio-data:
+  caddy-data:

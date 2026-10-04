@@ -1,14 +1,19 @@
 {
-  "name": "4sigma-workspace",
+  "name": "4sigmabrains",
   "private": true,
   "scripts": {
-    "setup": "npm ci --prefix apps/api && npm ci --prefix apps/web",
-    "infra": "docker compose up -d postgres redis minio",
-    "dev:api": "npm run start:dev --prefix apps/api",
-    "dev:web": "npm run dev --prefix apps/web",
-    "build": "npm run build --prefix apps/api && npm run build --prefix apps/web",
-    "lint": "npm run lint --prefix apps/api && npm run lint --prefix apps/web",
-    "test": "npm test --prefix apps/api"
+    "setup": "npm ci --prefix apps/backend && npm ci --prefix apps/frontend",
+    "infra": "docker compose -f infra/docker/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infra/docker/docker-compose.dev.yml down",
+    "dev:backend": "npm run start:dev --prefix apps/backend",
+    "dev:frontend": "npm run dev --prefix apps/frontend",
+    "build": "npm run build --prefix apps/backend && npm run build --prefix apps/frontend",
+    "lint": "npm run lint --prefix apps/backend && npm run lint --prefix apps/frontend",
+    "test": "npm test --prefix apps/backend",
+    "up": "docker compose -f infra/docker/docker-compose.yml --env-file .env up -d --build",
+    "down": "docker compose -f infra/docker/docker-compose.yml --env-file .env down",
+    "migration:generate": "npm run migration:generate --prefix apps/backend --",
+    "secrets": "sh infra/scripts/gen-secrets.sh"
   },
   "engines": {
     "node": ">=22",
