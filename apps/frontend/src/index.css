@@ -1,0 +1,197 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Design tokens lấy từ Figma "4SigmaBrains" (Workspace v1) */
+/* Design tokens lấy từ Figma "4SigmaBrains" › Nền tảng thiết kế */
+:root {
+  --radius: 0.5rem;
+  --background: #f3f5f7; /* canvas */
+  --foreground: #16202b;
+  --card: #ffffff; /* surface */
+  --card-foreground: #16202b;
+  --popover: #ffffff;
+  --popover-foreground: #16202b;
+  --subtle: #f7f9fa;
+  --primary: #1f4fd1;
+  --primary-hover: #173da6;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e6edfc;
+  --secondary: #e6edfc;
+  --secondary-foreground: #1f4fd1;
+  --muted: #eef1f4;
+  --muted-foreground: #5b6673;
+  --text-secondary: #4a5563;
+  --accent: #e6edfc;
+  --accent-foreground: #173da6;
+  --destructive: #b42318;
+  --border: #dce1e7;
+  --border-strong: #cbd2da;
+  --input: #dce1e7;
+  --ring: #1f4fd1;
+
+  /* Trạng thái hạn chót: luôn đi kèm chữ */
+  --overdue: #fde8e6;
+  --overdue-foreground: #b42318;
+  --due-soon: #fbf0d9;
+  --due-soon-foreground: #7a4e00;
+  --on-time: #e2f2e9;
+  --on-time-foreground: #17643f;
+  --late: #fce9dc;
+  --late-foreground: #9a3412;
+  --neutral: #eef1f4;
+  --neutral-foreground: #4a5563;
+  --seal: #b42318;
+  --annotation: #f0813f;
+
+  --sidebar: #111a24;
+  --sidebar-foreground: #c3ccd6;
+  --sidebar-muted: #8d99a6;
+  --sidebar-primary: #1f4fd1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #24344b;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-field: #162230;
+  --sidebar-border: #263445;
+  --sidebar-ring: #1f4fd1;
+
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.04);
+  --shadow-pop: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 2px 6px rgb(16 24 40 / 0.06);
+}
+
+.dark {
+  --background: #0b1118;
+  --foreground: #e6ebf1;
+  --card: #111a24;
+  --card-foreground: #e6ebf1;
+  --popover: #141f2b;
+  --popover-foreground: #e6ebf1;
+  --subtle: #0f1720;
+  --primary: #5b82f0;
+  --primary-hover: #7b9bf4;
+  --primary-foreground: #ffffff;
+  --primary-soft: #1a2a4d;
+  --secondary: #1a2a4d;
+  --secondary-foreground: #c9d7fb;
+  --muted: #1a2532;
+  --muted-foreground: #95a2b1;
+  --text-secondary: #b3bfcc;
+  --accent: #1a2a4d;
+  --accent-foreground: #c9d7fb;
+  --destructive: #f97066;
+  --border: #233040;
+  --border-strong: #2f3e50;
+  --input: #2a384a;
+  --ring: #5b82f0;
+
+  --overdue: #3a1714;
+  --overdue-foreground: #fda29b;
+  --due-soon: #352710;
+  --due-soon-foreground: #fdd38a;
+  --on-time: #0f2f20;
+  --on-time-foreground: #86d9a8;
+  --late: #3a1e10;
+  --late-foreground: #fdb48a;
+  --neutral: #1a2532;
+  --neutral-foreground: #b3bfcc;
+  --seal: #f04438;
+  --annotation: #f59a62;
+
+  --sidebar: #0a1017;
+  --sidebar-accent: #1e2c40;
+  --sidebar-field: #111a24;
+  --sidebar-border: #1c2735;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --font-sans: 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-field: var(--sidebar-field);
+  --color-subtle: var(--subtle);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-text-secondary: var(--text-secondary);
+  --color-border-strong: var(--border-strong);
+  --color-overdue: var(--overdue);
+  --color-overdue-foreground: var(--overdue-foreground);
+  --color-due-soon: var(--due-soon);
+  --color-due-soon-foreground: var(--due-soon-foreground);
+  --color-on-time: var(--on-time);
+  --color-on-time-foreground: var(--on-time-foreground);
+  --color-late: var(--late);
+  --color-late-foreground: var(--late-foreground);
+  --color-neutral: var(--neutral);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-seal: var(--seal);
+  --color-annotation: var(--annotation);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Nhãn số liệu dạng bảng: số luôn thẳng cột */
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Thanh cuộn mảnh cho cột Kanban, sidebar */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  /* Nền chấm cho canvas bản vẽ */
+  .bg-dots {
+    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 14%, transparent) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

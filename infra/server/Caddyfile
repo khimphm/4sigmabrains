@@ -1,0 +1,10 @@
+# Reverse proxy + HTTPS tự động (Let's Encrypt) khi tự chạy trên VPS/máy chủ.
+# Đặt DOMAIN trong .env (vd: work.4sigmabrains.com) và trỏ DNS về IP máy.
+# Bật: docker compose -f infra/docker/docker-compose.yml --profile https up -d
+{$DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 100MB
+	}
+	reverse_proxy app:3000
+}

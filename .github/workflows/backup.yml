@@ -1,0 +1,38 @@
+# Sao lưu database hằng tuần, mã hoá rồi lưu thành artifact 30 ngày (tải ở tab Actions).
+# Cần: Secrets DATABASE_URL (chuỗi Neon) và BACKUP_PASSPHRASE (mật khẩu giải nén).
+# Giải mã: gpg --decrypt db.sql.gz.gpg | gunzip > db.sql
+name: Sao lưu database
+
+on:
+  schedule:
+    - cron: "0 19 * * 6" # 2h sáng Chủ nhật giờ Việt Nam
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kiểm tra cấu hình
+        id: check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "Chưa cấu hình DATABASE_URL / BACKUP_PASSPHRASE, bỏ qua."; echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: pg_dump + mã hoá
+        if: steps.check.outputs.skip != 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          docker run --rm postgres:17-alpine pg_dump --no-owner --no-privileges "$DATABASE_URL" | gzip \
+            | gpg --batch --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o db.sql.gz.gpg
+          ls -lh db.sql.gz.gpg
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          name: db-${{ github.run_id }}
+          path: db.sql.gz.gpg
+          retention-days: 30
