@@ -23,8 +23,8 @@ export function StatusDot({ status }: { status: TaskStatus }) {
 export function PriorityIcon({ priority, withLabel, className }: { priority: TaskPriority; withLabel?: boolean; className?: string }) {
   const meta = PRIORITY_META[priority]
   return (
-    <span className={cn('inline-flex items-center gap-1.5 text-xs', meta.color, className)} title={meta.label}>
-      <span className="flex h-3 items-end gap-[2px]">
+    <span className={cn('inline-flex items-center gap-1.5 text-xs', meta.color, className)} title={`Ưu tiên: ${meta.label}`}>
+      <span className="flex h-3 items-end gap-[2px]" aria-hidden>
         {[1, 2, 3, 4].map((b) => (
           <span
             key={b}
@@ -33,7 +33,7 @@ export function PriorityIcon({ priority, withLabel, className }: { priority: Tas
           />
         ))}
       </span>
-      {withLabel && <span className="text-foreground">{meta.label}</span>}
+      {withLabel ? <span className="text-foreground">{meta.label}</span> : <span className="sr-only">Ưu tiên {meta.label}</span>}
     </span>
   )
 }
@@ -46,11 +46,11 @@ export function DueDate({ due, done, className }: { due: string | null; done?: b
     <span
       className={cn(
         'inline-flex items-center gap-1 text-xs',
-        overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-muted-foreground',
+        overdue ? 'text-overdue-foreground font-semibold' : 'text-muted-foreground',
         className,
       )}
     >
-      <CalendarClock className="size-3.5" />
+      <CalendarClock className="size-3.5" strokeWidth={1.8} aria-hidden />
       {label}
     </span>
   )

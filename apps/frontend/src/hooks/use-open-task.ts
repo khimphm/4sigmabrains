@@ -1,14 +1,9 @@
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import type { Task } from '@/types/api'
 
-// Mở ngăn chi tiết công việc bằng cách thêm ?task=<id> vào URL hiện tại
+// Mở trang chi tiết công việc (Figma 04)
 export function useOpenTask() {
-  const [, setParams] = useSearchParams()
-  return (task: Pick<Task, 'id'>) =>
-    setParams((p) => {
-      const next = new URLSearchParams(p)
-      next.set('task', task.id)
-      return next
-    })
+  const navigate = useNavigate()
+  return (task: Pick<Task, 'id'>) => navigate(`/tasks/${task.id}`)
 }

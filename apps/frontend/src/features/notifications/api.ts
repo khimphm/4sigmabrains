@@ -27,10 +27,12 @@ export function useRealtimeNotifications(onOpen: (link: string) => void) {
   const qc = useQueryClient()
   useEffect(() => {
     const socket = io({ path: '/socket.io', withCredentials: true, transports: ['websocket', 'polling'] })
-    socket.on('notification', (n: Notification) => {
+    socket.on('notification', (n: Notification & { silent?: boolean }) => {
       qc.invalidateQueries({ queryKey: ['notifications'] })
       qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      // Người dùng tắt "Thông báo trong web": chỉ cập nhật hộp thư, không bật cửa sổ
+      if (n.silent) return
       toast(n.title, {
         description: n.body ?? undefined,
         action: n.link ? { label: 'Xem', onClick: () => onOpen(n.link!) } : undefined,
