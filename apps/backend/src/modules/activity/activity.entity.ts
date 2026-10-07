@@ -12,7 +12,14 @@ import {
 import { User } from '../users/user.entity.js';
 
 export type EntityKind =
-  'project' | 'task' | 'discussion' | 'decision' | 'user';
+  | 'project'
+  | 'task'
+  | 'discussion'
+  | 'decision'
+  | 'user'
+  | 'file'
+  | 'drawing'
+  | 'client';
 
 // Nhật ký: ai làm gì, lúc nào. Dùng cho tab "Hoạt động" và dashboard.
 @Entity('activity_logs')

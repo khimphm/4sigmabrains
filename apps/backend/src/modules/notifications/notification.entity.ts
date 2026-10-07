@@ -24,6 +24,10 @@ export enum NotificationType {
   ProjectAdded = 'PROJECT_ADDED',
   MemberPending = 'MEMBER_PENDING',
   AccountApproved = 'ACCOUNT_APPROVED',
+  TaskWatched = 'TASK_WATCHED',
+  FileShared = 'FILE_SHARED',
+  DrawingReview = 'DRAWING_REVIEW',
+  DrawingReviewed = 'DRAWING_REVIEWED',
 }
 
 @Entity('notifications')
@@ -59,7 +63,7 @@ export class Notification {
   @Column({ type: 'text', nullable: true })
   body: string | null;
 
-  // Đường dẫn trong app, vd /projects/<id>?task=<id>
+  // Đường dẫn trong app, vd /tasks/<id>
   @Column({ type: 'varchar', nullable: true })
   link: string | null;
 

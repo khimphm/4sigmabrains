@@ -54,8 +54,16 @@ export class NotificationsService {
     const actor = input.actorId
       ? await this.users.findOneBy({ id: input.actorId })
       : null;
+    // Tắt "thông báo trong web" chỉ tắt cửa sổ bật lên; hộp thư vẫn lưu
+    const popup = new Set(
+      recipients.filter((u) => u.webNotifications).map((u) => u.id),
+    );
     for (const n of saved) {
-      this.gateway.emitToUser(n.userId, 'notification', { ...n, actor });
+      this.gateway.emitToUser(n.userId, 'notification', {
+        ...n,
+        actor,
+        silent: !popup.has(n.userId),
+      });
     }
     for (const u of recipients) {
       if (u.emailNotifications)

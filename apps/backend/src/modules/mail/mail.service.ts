@@ -34,7 +34,13 @@ export class MailService {
   }
 
   // Gửi nền, lỗi chỉ ghi log để không làm hỏng thao tác chính.
-  send(to: string, subject: string, text: string, link?: string | null) {
+  send(
+    to: string,
+    subject: string,
+    text: string,
+    link?: string | null,
+    cta = 'Mở trong ứng dụng',
+  ) {
     if (!this.transporter) return;
     const url = link ? `${this.webUrl}${link}` : this.webUrl;
     const html = `
@@ -44,7 +50,7 @@ export class MailService {
         </div>
         <h2 style="font-size:18px;margin:0 0 8px">${escapeHtml(subject)}</h2>
         <p style="color:#5b6675;white-space:pre-line">${escapeHtml(text)}</p>
-        <a href="${url}" style="display:inline-block;margin-top:16px;background:#1f4fd1;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px">Mở trong ứng dụng</a>
+        <a href="${url}" style="display:inline-block;margin-top:16px;background:#1f4fd1;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px">${escapeHtml(cta)}</a>
       </div>`;
     this.transporter
       .sendMail({

@@ -18,6 +18,7 @@ export class CreateTaskDto {
   @IsUUID() projectId: string;
   @IsString() @MinLength(1) @MaxLength(300) title: string;
   @IsOptional() @IsString() @MaxLength(20000) description?: string;
+  @IsOptional() @IsString() @MaxLength(5000) acceptanceCriteria?: string;
   @IsOptional() @IsEnum(TaskStatus) status?: TaskStatus;
   @IsOptional() @IsEnum(TaskPriority) priority?: TaskPriority;
   @IsOptional() @IsUUID() assigneeId?: string | null;
@@ -30,6 +31,7 @@ export class CreateTaskDto {
 export class UpdateTaskDto {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(300) title?: string;
   @IsOptional() @IsString() @MaxLength(20000) description?: string | null;
+  @IsOptional() @IsString() @MaxLength(5000) acceptanceCriteria?: string | null;
   @IsOptional() @IsEnum(TaskStatus) status?: TaskStatus;
   @IsOptional() @IsEnum(TaskPriority) priority?: TaskPriority;
   @IsOptional() @IsUUID() assigneeId?: string | null;
@@ -52,6 +54,9 @@ export class TaskQueryDto {
   @IsOptional() @IsDateString() dueTo?: string;
   @IsOptional() @IsString() q?: string;
   @IsOptional() @IsString() includeDone?: string;
+  @IsOptional() @IsString() label?: string;
+  // overdue | today | week | none
+  @IsOptional() @IsString() due?: string;
 }
 
 export class ChecklistItemDto {

@@ -12,6 +12,21 @@ function list(name: string): string[] {
     .filter(Boolean);
 }
 
+// Callback mặc định: <WEB_URL>/api/auth/<provider>/callback
+function oauth(prefix: string) {
+  const clientId = process.env[`${prefix}_CLIENT_ID`] ?? '';
+  const clientSecret = process.env[`${prefix}_CLIENT_SECRET`] ?? '';
+  const webUrl = process.env.WEB_URL ?? 'http://localhost:5173';
+  return {
+    enabled: !!clientId && !!clientSecret,
+    clientId: clientId || 'disabled',
+    clientSecret: clientSecret || 'disabled',
+    callbackUrl:
+      process.env[`${prefix}_CALLBACK_URL`] ??
+      `${webUrl}/api/auth/${prefix.toLowerCase()}/callback`,
+  };
+}
+
 export const configuration = () => ({
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 3000),
@@ -44,9 +59,12 @@ export const configuration = () => ({
     from: process.env.MAIL_FROM ?? '4SigmaBrains <no-reply@localhost>',
   },
   auth: {
-    googleClientId: required('GOOGLE_CLIENT_ID'),
-    googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
-    googleCallbackUrl: required('GOOGLE_CALLBACK_URL'),
+    // Mỗi cách đăng nhập chỉ bật khi có đủ khoá. Đăng nhập email + mật khẩu luôn bật.
+    google: oauth('GOOGLE'),
+    microsoft: oauth('MICROSOFT'),
+    github: oauth('GITHUB'),
+    // Microsoft: "common" cho mọi tài khoản, hoặc tenant ID của công ty
+    microsoftTenant: process.env.MICROSOFT_TENANT ?? 'common',
     jwtSecret: required('JWT_SECRET'),
     jwtExpiresInSeconds: Number(
       process.env.JWT_EXPIRES_IN_SECONDS ?? 60 * 60 * 24 * 7,

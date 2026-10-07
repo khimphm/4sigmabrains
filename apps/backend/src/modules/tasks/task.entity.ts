@@ -47,6 +47,10 @@ export class Task extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
+  // Tiêu chí hoàn thành
+  @Column({ name: 'acceptance_criteria', type: 'text', nullable: true })
+  acceptanceCriteria: string | null;
+
   @Column({
     type: 'enum',
     enum: TaskStatus,
@@ -102,6 +106,14 @@ export class Task extends BaseEntity {
     select: false,
   })
   reminderSentAt: Date | null;
+
+  @Column({
+    name: 'reminder_2h_sent_at',
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+  })
+  reminder2hSentAt: Date | null;
 
   @Column({
     name: 'overdue_notified_at',

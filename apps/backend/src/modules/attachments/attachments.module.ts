@@ -4,6 +4,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import type { AppConfig } from '../../config/configuration.js';
+import { ProjectsModule } from '../projects/projects.module.js';
 import { Attachment } from './attachment.entity.js';
 import { AttachmentsController } from './attachments.controller.js';
 import { AttachmentsService } from './attachments.service.js';
@@ -11,6 +12,7 @@ import { AttachmentsService } from './attachments.service.js';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Attachment]),
+    ProjectsModule,
     MulterModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<AppConfig, true>) => ({

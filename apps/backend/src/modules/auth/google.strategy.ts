@@ -1,54 +1,41 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import type { Request } from 'express';
 import { Profile, Strategy } from 'passport-google-oauth20';
 
 import type { AppConfig } from '../../config/configuration.js';
-import { UsersService } from '../users/users.service.js';
+import { AuthService } from './auth.service.js';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-  private readonly auth: AppConfig['auth'];
-
   constructor(
     config: ConfigService<AppConfig, true>,
-    private readonly usersService: UsersService,
+    private readonly auth: AuthService,
   ) {
-    const auth = config.get('auth', { infer: true });
+    const google = config.get('auth.google', { infer: true });
     super({
-      clientID: auth.googleClientId,
-      clientSecret: auth.googleClientSecret,
-      callbackURL: auth.googleCallbackUrl,
+      clientID: google.clientId,
+      clientSecret: google.clientSecret,
+      callbackURL: google.callbackUrl,
       scope: ['email', 'profile'],
+      passReqToCallback: true,
     });
-    this.auth = auth;
   }
 
-  async validate(
-    _accessToken: string,
-    _refreshToken: string,
-    profile: Profile,
-  ) {
-    const email =
-      profile.emails?.find((e) => e.verified)?.value ??
-      profile.emails?.[0]?.value;
-    if (!email)
-      throw new UnauthorizedException('Tài khoản Google không có email');
-
-    const domain = email.split('@')[1]?.toLowerCase();
-    const { allowedEmailDomains, adminEmails } = this.auth;
-    if (allowedEmailDomains.length && !allowedEmailDomains.includes(domain)) {
-      throw new UnauthorizedException('Email không thuộc tổ chức');
-    }
-
-    return this.usersService.upsertFromGoogle(
+  validate(req: Request, _at: string, _rt: string, profile: Profile) {
+    return this.auth.oauthLogin(
+      'google',
       {
-        googleId: profile.id,
-        email,
-        name: profile.displayName || email,
+        id: profile.id,
+        email:
+          profile.emails?.find((e) => e.verified)?.value ??
+          profile.emails?.[0]?.value ??
+          null,
+        name: profile.displayName,
         avatarUrl: profile.photos?.[0]?.value ?? null,
       },
-      adminEmails,
+      req,
     );
   }
 }

@@ -43,8 +43,19 @@ export class TasksController {
   }
 
   @Get(':id')
-  get(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tasks.get(id);
+  get(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tasks.detail(user, id);
+  }
+
+  // Theo dõi / bỏ theo dõi
+  @Post(':id/watch')
+  watch(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tasks.watch(user, id, true);
+  }
+
+  @Delete(':id/watch')
+  unwatch(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tasks.watch(user, id, false);
   }
 
   @Patch(':id')
@@ -87,11 +98,12 @@ export class TasksController {
 
   @Patch(':id/checklist/:itemId')
   updateItem(
+    @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('itemId', ParseUUIDPipe) itemId: string,
     @Body() dto: UpdateChecklistItemDto,
   ) {
-    return this.tasks.updateChecklistItem(id, itemId, dto);
+    return this.tasks.updateChecklistItem(user, id, itemId, dto);
   }
 
   @Delete(':id/checklist/:itemId')

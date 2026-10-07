@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 
 import { BaseEntity } from '../../common/base.entity.js';
+import { Client } from '../clients/client.entity.js';
 import { User } from '../users/user.entity.js';
 import { ProjectMember } from './project-member.entity.js';
 
@@ -46,6 +47,13 @@ export class Project extends BaseEntity {
 
   @Column({ name: 'due_date', type: 'date', nullable: true })
   dueDate: string | null;
+
+  @Column({ name: 'client_id', type: 'uuid', nullable: true })
+  clientId: string | null;
+
+  @ManyToOne(() => Client, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'client_id' })
+  client: Relation<Client> | null;
 
   @Column({ name: 'owner_id', type: 'uuid' })
   ownerId: string;

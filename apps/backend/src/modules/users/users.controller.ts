@@ -5,10 +5,11 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 
-import { Roles } from '../../common/decorators.js';
+import { ClientAccess, Roles } from '../../common/decorators.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { User, UserRole } from './user.entity.js';
 import { UpdateMemberDto, UpdateProfileDto } from './users.dto.js';
@@ -24,16 +25,32 @@ export class UsersController {
   }
 
   @Patch('me')
+  @ClientAccess()
   updateMe(@CurrentUser() user: User, @Body() dto: UpdateProfileDto) {
     return this.users.updateProfile(user, dto);
   }
 
-  @Get(':id')
-  get(@Param('id', ParseUUIDPipe) id: string) {
-    return this.users.get(id);
+  @Get('me/calendar')
+  async calendar(@CurrentUser() user: User) {
+    return { token: await this.users.calendarToken(user) };
   }
 
-  // Duyệt thành viên, đổi vai trò, khoá tài khoản
+  @Post('me/calendar')
+  async regenerateCalendar(@CurrentUser() user: User) {
+    return { token: await this.users.calendarToken(user, true) };
+  }
+
+  @Get(':id')
+  get(@Param('id', ParseUUIDPipe) id: string) {
+    return this.users.getWithClient(id);
+  }
+
+  @Get(':id/profile')
+  profile(@Param('id', ParseUUIDPipe) id: string) {
+    return this.users.profile(id);
+  }
+
+  // Duyệt thành viên, đổi vai trò, khoá tài khoản, gắn khách hàng
   @Patch(':id')
   @Roles(UserRole.Admin)
   update(

@@ -11,6 +11,7 @@ import type { User } from '../users/user.entity.js';
 import { ChecklistItem } from './checklist-item.entity.js';
 import { STATUS_LABEL } from './task-labels.js';
 import { TaskComment } from './task-comment.entity.js';
+import { TaskWatcher } from './task-watcher.entity.js';
 import { Task, TaskStatus } from './task.entity.js';
 import type {
   CommentDto,
@@ -22,7 +23,7 @@ import type {
 } from './tasks.dto.js';
 
 const taskCode = (t: Task) => `${t.project?.key ?? ''}-${t.number}`;
-const taskLink = (t: Task) => `/projects/${t.projectId}?task=${t.id}`;
+const taskLink = (t: Task) => `/tasks/${t.id}`;
 
 @Injectable()
 export class TasksService {
@@ -32,6 +33,8 @@ export class TasksService {
     private readonly checklist: Repository<ChecklistItem>,
     @InjectRepository(TaskComment)
     private readonly comments: Repository<TaskComment>,
+    @InjectRepository(TaskWatcher)
+    private readonly watchers: Repository<TaskWatcher>,
     private readonly dataSource: DataSource,
     private readonly projects: ProjectsService,
     private readonly activity: ActivityService,
@@ -60,6 +63,14 @@ export class TasksService {
             .where('c.task_id = t.id AND c.done = true'),
         't_checklist_done',
       )
+      .addSelect(
+        `(SELECT count(*)::int FROM attachments a WHERE a.target_type = 'TASK' AND a.target_id = t.id AND a.is_latest)`,
+        't_attachment_count',
+      )
+      .addSelect(
+        '(SELECT count(*)::int FROM task_comments tc WHERE tc.task_id = t.id)',
+        't_comment_count',
+      )
       .orderBy('t.position', 'ASC')
       .addOrderBy('t.createdAt', 'DESC');
 
@@ -76,6 +87,18 @@ export class TasksService {
     if (query.dueFrom)
       qb.andWhere('t.dueDate >= :dueFrom', { dueFrom: query.dueFrom });
     if (query.dueTo) qb.andWhere('t.dueDate <= :dueTo', { dueTo: query.dueTo });
+    if (query.label)
+      qb.andWhere(':label = ANY(t.labels)', { label: query.label });
+    const tz = `'Asia/Ho_Chi_Minh'`;
+    if (query.due === 'overdue')
+      qb.andWhere(`t.status <> 'DONE' AND t.dueDate < now()`);
+    else if (query.due === 'today')
+      qb.andWhere(
+        `(t.dueDate AT TIME ZONE ${tz})::date = (now() AT TIME ZONE ${tz})::date`,
+      );
+    else if (query.due === 'week')
+      qb.andWhere(`t.dueDate BETWEEN now() AND now() + interval '7 days'`);
+    else if (query.due === 'none') qb.andWhere('t.dueDate IS NULL');
     if (query.q) {
       qb.andWhere(
         new Brackets((w) =>
@@ -92,16 +115,63 @@ export class TasksService {
           t_id: string;
           t_checklist_total: number;
           t_checklist_done: number;
+          t_attachment_count: number;
+          t_comment_count: number;
         }) => [
           r.t_id,
           {
             checklistTotal: r.t_checklist_total,
             checklistDone: r.t_checklist_done,
+            attachmentCount: r.t_attachment_count,
+            commentCount: r.t_comment_count,
           },
         ],
       ),
     );
     return entities.map((t) => ({ ...t, ...counts.get(t.id) }));
+  }
+
+  // Chi tiết: kèm người theo dõi và trạng thái nhắc hạn tự động
+  async detail(user: User, id: string) {
+    const task = await this.get(id);
+    const [watchers, [reminders]] = await Promise.all([
+      this.watchers.find({
+        where: { taskId: id },
+        order: { createdAt: 'ASC' },
+      }),
+      this.dataSource.query(
+        `SELECT reminder_sent_at AS "reminder24hSentAt", reminder_2h_sent_at AS "reminder2hSentAt",
+                overdue_notified_at AS "overdueNotifiedAt"
+           FROM tasks WHERE id = $1`,
+        [id],
+      ),
+    ]);
+    return {
+      ...task,
+      watchers: watchers.map((w) => w.user),
+      watching: watchers.some((w) => w.userId === user.id),
+      reminders,
+    };
+  }
+
+  async watch(user: User, id: string, on: boolean) {
+    await this.get(id);
+    if (on) await this.addWatchers(id, [user.id]);
+    else await this.watchers.delete({ taskId: id, userId: user.id });
+    return this.detail(user, id);
+  }
+
+  private async addWatchers(taskId: string, userIds: (string | null)[]) {
+    const ids = [...new Set(userIds.filter((u): u is string => !!u))];
+    if (ids.length)
+      await this.watchers.upsert(
+        ids.map((userId) => ({ taskId, userId })),
+        ['taskId', 'userId'],
+      );
+  }
+
+  private async watcherIds(taskId: string) {
+    return (await this.watchers.findBy({ taskId })).map((w) => w.userId);
   }
 
   async get(id: string) {
@@ -155,6 +225,7 @@ export class TasksService {
     });
 
     const full = await this.get(task.id);
+    await this.addWatchers(full.id, [user.id, full.assigneeId]);
     await this.activity.log({
       actorId: user.id,
       entityType: 'task',
@@ -186,6 +257,7 @@ export class TasksService {
       patch.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
       // Đổi hạn thì cho phép nhắc lại
       patch.reminderSentAt = null;
+      patch.reminder2hSentAt = null;
       patch.overdueNotifiedAt = null;
     } else {
       delete patch.dueDate;
@@ -216,16 +288,21 @@ export class TasksService {
         meta: { changes, from: before.status, to: after.status },
       });
     }
-    if (dto.assigneeId && dto.assigneeId !== before.assigneeId)
+    if (dto.assigneeId && dto.assigneeId !== before.assigneeId) {
+      await this.addWatchers(id, [dto.assigneeId]);
       await this.notifyAssigned(user, after);
+    }
     if (dto.status && dto.status !== before.status) {
-      await this.notifications.notify([after.reporterId, after.assigneeId], {
-        type: NotificationType.TaskStatusChanged,
-        title: `${taskCode(after)} chuyển sang "${STATUS_LABEL[after.status]}"`,
-        body: after.title,
-        link: taskLink(after),
-        actorId: user.id,
-      });
+      await this.notifications.notify(
+        [after.reporterId, after.assigneeId, ...(await this.watcherIds(id))],
+        {
+          type: NotificationType.TaskStatusChanged,
+          title: `${taskCode(after)} chuyển sang "${STATUS_LABEL[after.status]}"`,
+          body: after.title,
+          link: taskLink(after),
+          actorId: user.id,
+        },
+      );
     }
     return after;
   }
@@ -263,11 +340,23 @@ export class TasksService {
   }
 
   async updateChecklistItem(
+    user: User,
     taskId: string,
     itemId: string,
     dto: UpdateChecklistItemDto,
   ) {
-    await this.checklist.update({ id: itemId, taskId }, dto);
+    await this.checklist.update(
+      { id: itemId, taskId },
+      {
+        ...dto,
+        // Ghi lại ai tick xong, lúc nào
+        ...(dto.done === undefined
+          ? {}
+          : dto.done
+            ? { completedById: user.id, completedAt: new Date() }
+            : { completedById: null, completedAt: null }),
+      },
+    );
     return this.checklist.findOneByOrFail({ id: itemId });
   }
 
@@ -303,10 +392,13 @@ export class TasksService {
       link: taskLink(task),
       actorId: user.id,
     });
+    await this.addWatchers(taskId, [user.id]);
     await this.notifications.notify(
-      [task.assigneeId, task.reporterId].filter(
-        (id) => id && !mentionIds.includes(id),
-      ),
+      [
+        task.assigneeId,
+        task.reporterId,
+        ...(await this.watcherIds(taskId)),
+      ].filter((id) => id && !mentionIds.includes(id)),
       {
         type: NotificationType.TaskCommented,
         title: `${user.name} bình luận trong ${taskCode(task)}`,

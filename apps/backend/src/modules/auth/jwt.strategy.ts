@@ -7,9 +7,11 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { AppConfig } from '../../config/configuration.js';
 import { UsersService } from '../users/users.service.js';
 import { SESSION_COOKIE } from './auth.constants.js';
+import { AuthService } from './auth.service.js';
 
 interface JwtPayload {
   sub: string;
+  sid: string;
 }
 
 @Injectable()
@@ -17,6 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     config: ConfigService<AppConfig, true>,
     private readonly usersService: UsersService,
+    private readonly auth: AuthService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -27,9 +30,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
+  // Phiên bị thu hồi (đăng xuất thiết bị, đổi mật khẩu) thì từ chối
   async validate(payload: JwtPayload) {
+    const session = await this.auth.validateSession(payload);
+    if (!session) throw new UnauthorizedException('Phiên đăng nhập đã hết');
     const user = await this.usersService.findById(payload.sub);
     if (!user) throw new UnauthorizedException();
-    return user;
+    return Object.assign(user, { sessionId: session.id });
   }
 }

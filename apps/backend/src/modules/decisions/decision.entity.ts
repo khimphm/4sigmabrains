@@ -10,16 +10,17 @@ import {
 import { BaseEntity } from '../../common/base.entity.js';
 import { Project } from '../projects/project.entity.js';
 import { User } from '../users/user.entity.js';
-import { DecisionOption } from './decision-option.entity.js';
-import { DecisionVote } from './decision-vote.entity.js';
+import { DecisionOpinion } from './decision-opinion.entity.js';
 
 export enum DecisionStatus {
-  // Đang thảo luận và bình chọn
+  // Đang thảo luận, gom ý kiến
   Open = 'OPEN',
+  // Đã đóng dấu chốt
   Decided = 'DECIDED',
   Cancelled = 'CANCELLED',
 }
 
+// Chủ đề "Phân tích và chốt": gom ý kiến cả nhóm, bình chọn, người có quyền đóng dấu kết luận.
 @Entity('decisions')
 export class Decision extends BaseEntity {
   @Column({ name: 'project_id', type: 'uuid', nullable: true })
@@ -32,7 +33,7 @@ export class Decision extends BaseEntity {
   @Column()
   title: string;
 
-  // Bối cảnh / vấn đề cần quyết định
+  // Bối cảnh / vấn đề cần thống nhất
   @Column({ type: 'text' })
   context: string;
 
@@ -44,7 +45,7 @@ export class Decision extends BaseEntity {
   })
   status: DecisionStatus;
 
-  // Hạn chốt quyết định
+  // Hạn chốt
   @Column({ name: 'due_date', type: 'timestamptz', nullable: true })
   dueDate: Date | null;
 
@@ -55,19 +56,20 @@ export class Decision extends BaseEntity {
   @JoinColumn({ name: 'owner_id' })
   owner: Relation<User>;
 
-  @Column({ name: 'chosen_option_id', type: 'uuid', nullable: true })
-  chosenOptionId: string | null;
-
-  // Lý do chọn phương án
+  // Kết luận khi đóng dấu chốt
   @Column({ type: 'text', nullable: true })
-  rationale: string | null;
+  conclusion: string | null;
+
+  @Column({ name: 'decided_by_id', type: 'uuid', nullable: true })
+  decidedById: string | null;
+
+  @ManyToOne(() => User, { eager: true, nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'decided_by_id' })
+  decidedBy: Relation<User> | null;
 
   @Column({ name: 'decided_at', type: 'timestamptz', nullable: true })
   decidedAt: Date | null;
 
-  @OneToMany(() => DecisionOption, (o) => o.decision, { cascade: true })
-  options: Relation<DecisionOption[]>;
-
-  @OneToMany(() => DecisionVote, (v) => v.decision)
-  votes: Relation<DecisionVote[]>;
+  @OneToMany(() => DecisionOpinion, (o) => o.decision)
+  opinions: Relation<DecisionOpinion[]>;
 }

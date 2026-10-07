@@ -12,3 +12,7 @@ export const AllowPending = () => SetMetadata(ALLOW_PENDING, true);
 
 export const ROLES = 'roles';
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES, roles);
+
+export const CLIENT_ACCESS = 'clientAccess';
+// Cho phép tài khoản khách hàng (CLIENT) gọi route này; mặc định khách hàng bị chặn.
+export const ClientAccess = () => SetMetadata(CLIENT_ACCESS, true);

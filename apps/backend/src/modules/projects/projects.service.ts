@@ -69,7 +69,7 @@ export class ProjectsService {
   async list(status?: ProjectStatus) {
     const projects = await this.projects.find({
       where: status ? { status } : {},
-      relations: { members: true, owner: true },
+      relations: { members: true, owner: true, client: true },
       order: { updatedAt: 'DESC' },
     });
     const stats = await this.stats(projects.map((p) => p.id));
@@ -82,7 +82,7 @@ export class ProjectsService {
   async get(id: string) {
     const project = await this.projects.findOne({
       where: { id },
-      relations: { members: true, owner: true },
+      relations: { members: true, owner: true, client: true },
     });
     if (!project) throw new NotFoundException('Không tìm thấy dự án');
     const stats = await this.stats([id]);
