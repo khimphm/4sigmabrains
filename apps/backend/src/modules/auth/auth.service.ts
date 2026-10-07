@@ -318,7 +318,11 @@ export class AuthService {
       .slice(0, 16);
   }
 
-  async passwordLink(user: Pick<User, 'id'>, ttlSeconds = 3600) {
+  async passwordLink(
+    user: Pick<User, 'id'>,
+    ttlSeconds = 3600,
+    invite = false,
+  ) {
     const full = await this.users.findOne({
       where: { id: user.id },
       select: { id: true, passwordHash: true },
@@ -331,7 +335,7 @@ export class AuthService {
       },
       { expiresIn: ttlSeconds },
     );
-    return `/reset-password?token=${encodeURIComponent(token)}`;
+    return `/reset-password?token=${encodeURIComponent(token)}${invite ? '&invite=1' : ''}`;
   }
 
   async forgotPassword(emailInput: string) {
@@ -575,7 +579,7 @@ export class AuthService {
         true,
       );
 
-    const link = await this.passwordLink(user, 7 * 24 * 3600);
+    const link = await this.passwordLink(user, 7 * 24 * 3600, true);
     const isClient = role === UserRole.Client;
     if (this.mail.enabled) {
       this.mail.send(

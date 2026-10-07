@@ -9,7 +9,8 @@ interface Person {
 }
 
 // Màu nền ổn định theo tên để dễ nhận ra từng người
-const PALETTE = ['bg-blue-500', 'bg-violet-500', 'bg-pink-500', 'bg-orange-500', 'bg-emerald-500', 'bg-cyan-600', 'bg-amber-500']
+// Bộ màu avatar từ Figma
+const PALETTE = ['bg-[#1F4FD1]', 'bg-[#7C3AED]', 'bg-[#0F766E]', 'bg-[#B45309]', 'bg-[#BE185D]']
 const colorFor = (name: string) => PALETTE[[...name].reduce((s, c) => s + c.charCodeAt(0), 0) % PALETTE.length]
 
 export function UserAvatar({ user, className, tooltip }: { user: Person; className?: string; tooltip?: boolean }) {

@@ -27,6 +27,7 @@ export class CreateProjectDto {
   @IsOptional() @IsDateString() dueDate?: string;
   @IsOptional() @IsArray() @IsUUID('all', { each: true }) memberIds?: string[];
   @IsOptional() @IsUUID() clientId?: string | null;
+  @IsOptional() @IsEnum(ProjectStatus) status?: ProjectStatus;
 }
 
 export class UpdateProjectDto {

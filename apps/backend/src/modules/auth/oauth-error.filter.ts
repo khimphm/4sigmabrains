@@ -6,7 +6,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+
+import { SESSION_COOKIE } from './auth.constants.js';
 
 import type { AppConfig } from '../../config/configuration.js';
 
@@ -19,11 +21,16 @@ export class OAuthErrorFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     this.logger.warn(`Đăng nhập OAuth thất bại: ${String(exception)}`);
-    const res = host.switchToHttp().getResponse<Response>();
+    const http = host.switchToHttp();
+    const res = http.getResponse<Response>();
+    const req = http.getRequest<Request>();
     const message =
       exception instanceof HttpException ? exception.message : 'oauth';
+    // Đang đăng nhập (liên kết thêm tài khoản) thì quay về trang Bảo mật của hồ sơ
+    const linking = !!req.cookies?.[SESSION_COOKIE];
+    const path = linking ? '/profile?tab=security&' : '/login?';
     res.redirect(
-      `${this.config.get('webUrl', { infer: true })}/login?error=${encodeURIComponent(message)}`,
+      `${this.config.get('webUrl', { infer: true })}${path}error=${encodeURIComponent(message)}`,
     );
   }
 }

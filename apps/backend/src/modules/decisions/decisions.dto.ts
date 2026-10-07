@@ -28,6 +28,7 @@ export class UpdateDecisionDto {
 export class DecisionQueryDto {
   @IsOptional() @IsEnum(DecisionStatus) status?: DecisionStatus;
   @IsOptional() @IsUUID() projectId?: string;
+  @IsOptional() @IsString() @MaxLength(200) q?: string;
 }
 
 export class OpinionDto {

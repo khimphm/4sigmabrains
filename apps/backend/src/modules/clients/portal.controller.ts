@@ -48,21 +48,28 @@ export class PortalController {
   @Get('overview')
   async overview(@CurrentUser() user: User) {
     const clientId = this.clientId(user);
-    const [[client], projects] = await Promise.all([
+    const [[client], projects, [company]] = await Promise.all([
       this.db.query('SELECT id, name FROM clients WHERE id = $1', [clientId]),
       this.db.query(
         `SELECT p.id, p.name, p.key, p.color, p.status, p.due_date AS "dueDate",
                 count(t.id)::int AS total,
                 count(t.id) FILTER (WHERE t.status = 'DONE')::int AS done,
                 count(t.id) FILTER (WHERE t.status <> 'DONE' AND t.due_date < now())::int AS overdue,
-                max(t.completed_at) AS "lastCompletedAt"
+                max(t.completed_at) AS "lastCompletedAt",
+                (SELECT json_build_object('title', n.title, 'dueDate', n.due_date)
+                   FROM tasks n WHERE n.project_id = p.id AND n.status <> 'DONE' AND n.due_date >= now()
+                  ORDER BY n.due_date LIMIT 1) AS "nextMilestone",
+                (SELECT count(*)::int FROM attachments a
+                  WHERE a.project_id = p.id AND a.shared_with_client AND a.is_latest) AS "sharedFiles"
            FROM projects p LEFT JOIN tasks t ON t.project_id = p.id
           WHERE p.client_id = $1 AND p.status <> 'ARCHIVED'
           GROUP BY p.id ORDER BY p.status, p.updated_at DESC`,
         [clientId],
       ),
+      // Thông tin liên hệ công ty để khách hàng biết gọi ai
+      this.db.query(`SELECT value FROM settings WHERE key = 'company'`),
     ]);
-    return { client, projects };
+    return { client, projects, company: company?.value ?? null };
   }
 
   @Get('projects/:id')

@@ -76,7 +76,8 @@ export class TasksService {
 
     if (query.projectId)
       qb.andWhere('t.projectId = :projectId', { projectId: query.projectId });
-    if (query.assigneeId) {
+    if (query.assigneeId === 'none') qb.andWhere('t.assigneeId IS NULL');
+    else if (query.assigneeId) {
       qb.andWhere('t.assigneeId = :assigneeId', {
         assigneeId: query.assigneeId === 'me' ? user.id : query.assigneeId,
       });
@@ -104,7 +105,11 @@ export class TasksService {
         new Brackets((w) =>
           w
             .where('t.title ILIKE :q', { q: `%${query.q}%` })
-            .orWhere('t.description ILIKE :q', { q: `%${query.q}%` }),
+            .orWhere('t.description ILIKE :q', { q: `%${query.q}%` })
+            // Tìm theo mã việc, vd "TA-12"
+            .orWhere(`(project.key || '-' || t.number) ILIKE :q`, {
+              q: `%${query.q}%`,
+            }),
         ),
       );
     }
@@ -423,5 +428,23 @@ export class TasksService {
     if (!comment) throw new NotFoundException();
     assertCan(comment.authorId === user.id || isManager(user));
     await this.comments.delete(commentId);
+  }
+
+  // Chỉ người viết được sửa bình luận của mình
+  async updateComment(
+    user: User,
+    taskId: string,
+    commentId: string,
+    dto: CommentDto,
+  ) {
+    const comment = await this.comments.findOne({
+      where: { id: commentId, taskId },
+      relations: { author: true },
+    });
+    if (!comment) throw new NotFoundException();
+    assertCan(comment.authorId === user.id);
+    comment.body = dto.body;
+    comment.mentionIds = dto.mentionIds ?? [];
+    return this.comments.save(comment);
   }
 }

@@ -41,7 +41,9 @@ Tổng chi phí: **0 đồng**. Cần khoảng 30 phút cho lần đầu. Mọi 
 | --- | --- |
 | `WEB_URL` | `https://4sigmabrains.onrender.com` (tên Render đặt, xem ở trang dịch vụ) |
 | `GOOGLE_CALLBACK_URL` | `https://4sigmabrains.onrender.com/api/auth/google/callback` |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Từ bước 3 |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Từ bước 3 (không bắt buộc: email + mật khẩu luôn dùng được) |
+| `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT` | Tuỳ chọn, đăng nhập bằng Microsoft 365. Callback `…/api/auth/microsoft/callback` |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Tuỳ chọn, đăng nhập bằng GitHub. Callback `…/api/auth/github/callback` |
 | `ADMIN_EMAILS` | Email Google của bạn (có quyền quản trị ngay) |
 | `ALLOWED_EMAIL_DOMAINS` | Để trống, hoặc domain công ty để chỉ cho email công ty đăng nhập |
 | `DATABASE_URL` | Từ bước 1 |

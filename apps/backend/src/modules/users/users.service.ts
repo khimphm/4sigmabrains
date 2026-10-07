@@ -94,6 +94,13 @@ export class UsersService {
         overdue: n(stats.overdue),
       },
       openTasks,
+      projects: await this.db.query(
+        `SELECT p.id, p.name, p.key, p.color, p.status, pm.role
+           FROM project_members pm JOIN projects p ON p.id = pm.project_id
+          WHERE pm.user_id = $1 AND p.status <> 'ARCHIVED'
+          ORDER BY p.updated_at DESC`,
+        [id],
+      ),
     };
   }
 

@@ -53,7 +53,7 @@ export class DashboardService {
                 count(t.id) FILTER (WHERE t.status = 'DONE' AND t.completed_at > now() - interval '90 days' AND t.completed_at <= t.due_date) AS on_time,
                 count(t.id) FILTER (WHERE t.status = 'DONE' AND t.completed_at > now() - interval '90 days' AND t.completed_at > t.due_date) AS late
            FROM users u LEFT JOIN tasks t ON t.assignee_id = u.id
-          WHERE u.status = 'ACTIVE'
+          WHERE u.status = 'ACTIVE' AND u.role <> 'CLIENT'
           GROUP BY u.id ORDER BY open DESC, u.name`,
       ),
       this.db.query(

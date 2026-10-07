@@ -6,6 +6,11 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from '@/lib/theme'
 import App from './App.tsx'
+import '@fontsource/be-vietnam-pro/400.css'
+import '@fontsource/be-vietnam-pro/500.css'
+import '@fontsource/be-vietnam-pro/600.css'
+import '@fontsource/be-vietnam-pro/700.css'
+import '@fontsource/be-vietnam-pro/800.css'
 import './index.css'
 
 const queryClient = new QueryClient({

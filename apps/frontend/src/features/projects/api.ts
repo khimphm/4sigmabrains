@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { del, get, patch, post } from '@/lib/api'
-import type { Activity, Project, ProjectRole } from '@/types/api'
+import type { Activity, Client, Project, ProjectRole, WorkspaceSettings } from '@/types/api'
 
 export const useProjects = () => useQuery({ queryKey: ['projects'], queryFn: () => get<Project[]>('/projects') })
 
@@ -20,6 +20,7 @@ export interface ProjectInput {
   startDate?: string | null
   dueDate?: string | null
   memberIds?: string[]
+  clientId?: string | null
 }
 
 export function useSaveProject(id?: string) {
@@ -43,7 +44,9 @@ export function useProjectMembers(projectId: string) {
   const invalidate = () => qc.invalidateQueries({ queryKey: ['projects'] })
   return {
     add: useMutation({
-      mutationFn: (userIds: string[]) => post(`/projects/${projectId}/members`, { userIds }),
+      // Nhận danh sách id hoặc { userIds, role } để mời kèm vai trò
+      mutationFn: (input: string[] | { userIds: string[]; role?: ProjectRole }) =>
+        post(`/projects/${projectId}/members`, Array.isArray(input) ? { userIds: input } : input),
       onSuccess: invalidate,
     }),
     setRole: useMutation({
@@ -57,3 +60,11 @@ export function useProjectMembers(projectId: string) {
     }),
   }
 }
+
+// Khách hàng (dùng cho ô chọn khách hàng của dự án)
+export const useClientOptions = () =>
+  useQuery({ queryKey: ['clients'], queryFn: () => get<Client[]>('/clients'), staleTime: 60_000 })
+
+// Cài đặt workspace: nhãn công việc kèm màu
+export const useWorkspaceSettings = () =>
+  useQuery({ queryKey: ['settings'], queryFn: () => get<WorkspaceSettings>('/settings'), staleTime: 5 * 60_000 })

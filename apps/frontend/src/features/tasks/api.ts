@@ -1,7 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { del, get, patch, post } from '@/lib/api'
-import type { Activity, ChecklistItem, Comment, Task, TaskPriority, TaskStatus } from '@/types/api'
+import { api, del, get, patch, post } from '@/lib/api'
+import type {
+  Activity,
+  ChecklistItem,
+  Comment,
+  Task,
+  TaskDetail,
+  TaskPriority,
+  TaskStatus,
+  WorkspaceSettings,
+} from '@/types/api'
 
 export interface TaskFilters {
   projectId?: string
@@ -9,6 +18,10 @@ export interface TaskFilters {
   includeDone?: boolean
   dueFrom?: string
   dueTo?: string
+  q?: string
+  label?: string
+  due?: 'overdue' | 'today' | 'week' | 'none'
+  status?: TaskStatus
 }
 
 export function useTasks(filters: TaskFilters, enabled = true) {
@@ -21,8 +34,23 @@ export function useTasks(filters: TaskFilters, enabled = true) {
   })
 }
 
+// GET /tasks/:id trả về TaskDetail (người theo dõi, nhắc hạn); useTask giữ kiểu Task cho chỗ cũ
 export const useTask = (id: string | null) =>
-  useQuery({ queryKey: ['task', id], queryFn: () => get<Task>(`/tasks/${id}`), enabled: !!id })
+  useQuery({ queryKey: ['task', id], queryFn: () => get<TaskDetail>(`/tasks/${id}`), enabled: !!id })
+
+export const useTaskDetail = (id: string | null | undefined) =>
+  useQuery({ queryKey: ['task', id], queryFn: () => get<TaskDetail>(`/tasks/${id}`), enabled: !!id })
+
+// Nhãn công việc (tên + màu) cấu hình trong Cài đặt
+export const useWorkspaceSettings = () =>
+  useQuery({ queryKey: ['settings'], queryFn: () => get<WorkspaceSettings>('/settings'), staleTime: 5 * 60_000 })
+
+export function useTaskLabels() {
+  const { data } = useWorkspaceSettings()
+  const labels = data?.taskLabels ?? []
+  const colorOf = (name: string) => labels.find((l) => l.name.toLowerCase() === name.toLowerCase())?.color
+  return { labels, colorOf }
+}
 
 export const useTaskComments = (id: string) =>
   useQuery({ queryKey: ['task', id, 'comments'], queryFn: () => get<Comment[]>(`/tasks/${id}/comments`) })
@@ -34,6 +62,7 @@ export interface TaskInput {
   projectId?: string
   title?: string
   description?: string | null
+  acceptanceCriteria?: string | null
   status?: TaskStatus
   priority?: TaskPriority
   assigneeId?: string | null
@@ -64,7 +93,7 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, ...data }: TaskInput & { id: string }) => patch<Task>(`/tasks/${id}`, data),
     onSuccess: (task) => {
-      qc.setQueryData(['task', task.id], task)
+      qc.setQueryData<Task>(['task', task.id], (old) => (old ? { ...old, ...task } : task))
       invalidate(task.id)
     },
   })
@@ -89,14 +118,34 @@ export function useMoveTask(filters: TaskFilters) {
   })
 }
 
+// Theo dõi / bỏ theo dõi công việc
+export function useWatchTask(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (watch: boolean) =>
+      watch ? post<TaskDetail>(`/tasks/${id}/watch`) : api<TaskDetail>(`/tasks/${id}/watch`, { method: 'DELETE' }),
+    onSuccess: (task) => qc.setQueryData(['task', id], task),
+  })
+}
+
 export function useDeleteTask() {
   const invalidate = useInvalidateTasks()
   return useMutation({ mutationFn: (id: string) => del(`/tasks/${id}`), onSuccess: () => invalidate() })
 }
 
 export function useChecklist(taskId: string) {
+  const qc = useQueryClient()
   const invalidate = useInvalidateTasks()
   const done = () => invalidate(taskId)
+  const key = ['task', taskId]
+  // Cập nhật ngay trên giao diện (tick / sửa / xoá), lỗi thì hoàn tác
+  const optimistic = async (fn: (items: ChecklistItem[]) => ChecklistItem[]) => {
+    await qc.cancelQueries({ queryKey: key, exact: true })
+    const prev = qc.getQueryData<Task>(key)
+    if (prev) qc.setQueryData<Task>(key, { ...prev, checklist: fn(prev.checklist ?? []) })
+    return { prev }
+  }
+  const rollback = (_e: unknown, _v: unknown, ctx?: { prev?: Task }) => ctx?.prev && qc.setQueryData(key, ctx.prev)
   return {
     add: useMutation({
       mutationFn: (content: string) => post<ChecklistItem>(`/tasks/${taskId}/checklist`, { content }),
@@ -105,9 +154,17 @@ export function useChecklist(taskId: string) {
     update: useMutation({
       mutationFn: ({ id, ...data }: { id: string; done?: boolean; content?: string }) =>
         patch<ChecklistItem>(`/tasks/${taskId}/checklist/${id}`, data),
-      onSuccess: done,
+      onMutate: ({ id, ...data }) =>
+        optimistic((items) => items.map((i) => (i.id === id ? { ...i, ...data } : i))),
+      onError: rollback,
+      onSettled: done,
     }),
-    remove: useMutation({ mutationFn: (id: string) => del(`/tasks/${taskId}/checklist/${id}`), onSuccess: done }),
+    remove: useMutation({
+      mutationFn: (id: string) => del(`/tasks/${taskId}/checklist/${id}`),
+      onMutate: (id) => optimistic((items) => items.filter((i) => i.id !== id)),
+      onError: rollback,
+      onSettled: done,
+    }),
   }
 }
 
@@ -115,6 +172,15 @@ export function useAddComment(taskId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: { body: string; mentionIds: string[] }) => post<Comment>(`/tasks/${taskId}/comments`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['task', taskId] }),
+  })
+}
+
+export function useEditComment(taskId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; body: string; mentionIds: string[] }) =>
+      patch<Comment>(`/tasks/${taskId}/comments/${id}`, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['task', taskId] }),
   })
 }

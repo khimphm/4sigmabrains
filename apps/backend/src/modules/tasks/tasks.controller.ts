@@ -129,6 +129,16 @@ export class TasksController {
     return this.tasks.addComment(user, id, dto);
   }
 
+  @Patch(':id/comments/:commentId')
+  updateComment(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('commentId', ParseUUIDPipe) commentId: string,
+    @Body() dto: CommentDto,
+  ) {
+    return this.tasks.updateComment(user, id, commentId, dto);
+  }
+
   @Delete(':id/comments/:commentId')
   @HttpCode(204)
   removeComment(

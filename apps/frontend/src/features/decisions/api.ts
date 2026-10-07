@@ -1,54 +1,95 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { get, post } from '@/lib/api'
-import type { Decision } from '@/types/api'
+import { api, del, get, patch, post } from '@/lib/api'
+import type { Decision, DecisionDetail, DecisionStatus, OpinionKind } from '@/types/api'
 
-export const useDecisions = () => useQuery({ queryKey: ['decisions'], queryFn: () => get<Decision[]>('/decisions') })
+export interface DecisionFilters {
+  status?: DecisionStatus
+  projectId?: string
+}
 
-export const useDecision = (id: string) =>
-  useQuery({ queryKey: ['decisions', id], queryFn: () => get<Decision>(`/decisions/${id}`) })
+const qs = (f: DecisionFilters) => {
+  const p = new URLSearchParams()
+  if (f.status) p.set('status', f.status)
+  if (f.projectId) p.set('projectId', f.projectId)
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
 
-export interface OptionInput {
+// Danh sách chủ đề (kèm opinionCount / participantCount)
+export const useDecisions = (filters: DecisionFilters = {}) =>
+  useQuery({ queryKey: ['decisions', 'list', filters], queryFn: () => get<Decision[]>(`/decisions${qs(filters)}`) })
+
+export const useDecision = (id?: string) =>
+  useQuery({
+    queryKey: ['decisions', 'detail', id],
+    queryFn: () => get<DecisionDetail>(`/decisions/${id}`),
+    enabled: !!id,
+  })
+
+export interface DecisionInput {
   title: string
-  description?: string
-  pros: string[]
-  cons: string[]
+  context: string
+  projectId?: string | null
+  dueDate?: string | null
 }
 
 export function useCreateDecision() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: {
-      title: string
-      context: string
-      projectId?: string | null
-      dueDate?: string | null
-      options: OptionInput[]
-    }) => post<Decision>('/decisions', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['decisions'] }),
+    mutationFn: (data: DecisionInput) => post<DecisionDetail>('/decisions', data),
+    onSuccess: (d) => {
+      qc.setQueryData(['decisions', 'detail', d.id], d)
+      qc.invalidateQueries({ queryKey: ['decisions', 'list'] })
+    },
   })
 }
 
+export interface OpinionInput {
+  body: string
+  kind?: OpinionKind
+  parentId?: string
+  mentionIds?: string[]
+}
+
+// Hầu hết thao tác trả về chi tiết chủ đề đã cập nhật -> ghi thẳng vào cache
 export function useDecisionActions(id: string) {
   const qc = useQueryClient()
-  const onSuccess = (d: Decision) => {
-    qc.setQueryData(['decisions', id], d)
-    qc.invalidateQueries({ queryKey: ['decisions'] })
+  const key = ['decisions', 'detail', id]
+  const onSuccess = (d: DecisionDetail) => {
+    qc.setQueryData(key, d)
+    qc.invalidateQueries({ queryKey: ['decisions', 'list'] })
   }
   return {
-    vote: useMutation({
-      mutationFn: (data: { optionId: string; comment?: string }) => post<Decision>(`/decisions/${id}/vote`, data),
+    update: useMutation({
+      mutationFn: (data: Partial<Pick<DecisionInput, 'title' | 'context' | 'dueDate'>>) =>
+        patch<DecisionDetail>(`/decisions/${id}`, data),
+      onSuccess,
+    }),
+    remove: useMutation({
+      mutationFn: () => del(`/decisions/${id}`),
+      onSuccess: () => {
+        qc.removeQueries({ queryKey: key })
+        qc.invalidateQueries({ queryKey: ['decisions', 'list'] })
+      },
+    }),
+    addOpinion: useMutation({
+      mutationFn: (data: OpinionInput) => post<DecisionDetail>(`/decisions/${id}/opinions`, data),
+      onSuccess,
+    }),
+    removeOpinion: useMutation({
+      mutationFn: (opinionId: string) => api<DecisionDetail>(`/decisions/${id}/opinions/${opinionId}`, { method: 'DELETE' }),
+      onSuccess,
+    }),
+    agree: useMutation({
+      mutationFn: (opinionId: string) => post<DecisionDetail>(`/decisions/${id}/opinions/${opinionId}/agree`),
       onSuccess,
     }),
     decide: useMutation({
-      mutationFn: (data: { optionId: string; rationale: string }) => post<Decision>(`/decisions/${id}/decide`, data),
+      mutationFn: (conclusion: string) => post<DecisionDetail>(`/decisions/${id}/decide`, { conclusion }),
       onSuccess,
     }),
-    addOption: useMutation({
-      mutationFn: (data: OptionInput) => post<Decision>(`/decisions/${id}/options`, data),
-      onSuccess,
-    }),
-    cancel: useMutation({ mutationFn: () => post<Decision>(`/decisions/${id}/cancel`), onSuccess }),
-    reopen: useMutation({ mutationFn: () => post<Decision>(`/decisions/${id}/reopen`), onSuccess }),
+    reopen: useMutation({ mutationFn: () => post<DecisionDetail>(`/decisions/${id}/reopen`), onSuccess }),
+    cancel: useMutation({ mutationFn: () => post<DecisionDetail>(`/decisions/${id}/cancel`), onSuccess }),
   }
 }

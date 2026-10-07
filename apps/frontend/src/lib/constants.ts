@@ -31,7 +31,12 @@ export const DECISION_STATUS_META: Record<DecisionStatus, { label: string; badge
   CANCELLED: { label: 'Đã huỷ', badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
 }
 
-export const ROLE_LABEL: Record<UserRole, string> = { ADMIN: 'Quản trị', MANAGER: 'Quản lý', MEMBER: 'Thành viên' }
+export const ROLE_LABEL: Record<UserRole, string> = {
+  ADMIN: 'Quản trị viên',
+  MANAGER: 'Quản lý dự án',
+  MEMBER: 'Thành viên',
+  CLIENT: 'Khách hàng',
+}
 export const USER_STATUS_LABEL: Record<UserStatus, string> = {
   PENDING: 'Chờ duyệt',
   ACTIVE: 'Đang hoạt động',

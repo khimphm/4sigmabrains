@@ -23,6 +23,17 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # Tuỳ chọn: đăng nhập Microsoft / GitHub (để trống thì nút không hiện)
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_TENANT
+        value: common
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
       - key: ADMIN_EMAILS
         sync: false
       - key: ALLOWED_EMAIL_DOMAINS

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In, Repository, ILike } from 'typeorm';
 
 import { assertCan, isManager } from '../../common/permissions.js';
 import { ActivityService } from '../activity/activity.service.js';
@@ -47,6 +47,7 @@ export class DecisionsService {
     const where: Record<string, unknown> = {};
     if (query.status) where.status = query.status;
     if (query.projectId) where.projectId = query.projectId;
+    if (query.q) where.title = ILike(`%${query.q.trim()}%`);
     const items = await this.decisions.find({
       where,
       relations: { project: true },

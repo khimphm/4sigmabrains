@@ -39,7 +39,16 @@ const EDITABLE = [
   DrawingStatus.Labeling,
   DrawingStatus.ChangesRequested,
 ];
-const drawingLink = (d: Drawing) => `/dataset/${d.batchId}/${d.id}`;
+// Đếm nhanh số trang PDF theo các đối tượng /Type /Page (trình duyệt sẽ đồng bộ lại nếu lệch)
+const pdfPageCount = (file: Express.Multer.File) => {
+  if (file.mimetype !== 'application/pdf') return 1;
+  const pages = file.buffer
+    .toString('latin1')
+    .match(/\/Type\s*\/Page(?![s\w])/g);
+  return Math.max(1, pages?.length ?? 1);
+};
+
+const drawingLink = (d: Drawing) => `/dataset/drawings/${d.id}`;
 
 @Injectable()
 export class DatasetService {
@@ -220,6 +229,7 @@ export class DatasetService {
             fileName,
             mimeType: file.mimetype,
             size: file.size,
+            pageCount: pdfPageCount(file),
             objectKey,
           }),
         ),
