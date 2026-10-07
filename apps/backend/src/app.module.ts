@@ -46,8 +46,8 @@ import { UsersModule } from './modules/users/users.module.js';
       }),
     }),
     ScheduleModule.forRoot(),
-    // Giới hạn 300 request/phút mỗi IP
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
+    // Giới hạn 1200 request/phút mỗi IP: cả văn phòng thường dùng chung 1 IP qua NAT
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1200 }]),
     // Hạ tầng & dịch vụ dùng chung
     StorageModule,
     MailModule,
